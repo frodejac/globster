@@ -1,0 +1,264 @@
+/* Base reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: monospace, 'Courier New', Courier;
+}
+
+body {
+    background-color: #f0f0f0;
+    color: #222;
+    padding: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* Typography */
+h1, h2, h3 {
+    font-weight: bold;
+    margin-bottom: 1.5rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border-bottom: 3px solid #222;
+    padding-bottom: 0.5rem;
+}
+
+h1 {
+    font-size: 2.2rem;
+}
+
+h2 {
+    font-size: 1.8rem;
+    margin-top: 2rem;
+}
+
+p {
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+}
+
+/* Containers */
+.container {
+    background-color: white;
+    border: 3px solid #222;
+    padding: 2rem;
+    box-shadow: 10px 10px 0 rgba(0, 0, 0, 0.8);
+    margin-bottom: 3rem;
+}
+
+/* Forms */
+form div {
+    margin-bottom: 1.5rem;
+}
+
+label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    font-size: 0.9rem;
+}
+
+input[type="text"],
+input[type="number"],
+input[type="datetime-local"],
+input[type="file"],
+input[type="password"],
+select {
+    width: 100%;
+    padding: 0.8rem;
+    border: 2px solid #222;
+    font-size: 1rem;
+    background-color: #f0f0f0;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+input[type="datetime-local"]:focus,
+select:focus {
+    outline: none;
+    border-color: #000;
+    background-color: #fff;
+}
+
+button,
+a.button {
+    background-color: #222;
+    color: white;
+    border: none;
+    padding: 0.4rem 1.0rem;
+    font-size: 1rem;
+    text-transform: uppercase;
+    cursor: pointer;
+    display: inline-block;
+    font-weight: bold;
+    letter-spacing: 1px;
+    text-decoration: none;
+    transition: transform 0.1s;
+}
+
+button:hover,
+a.button:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 3px 3px 0 rgb(0 255 183);
+}
+
+button:active,
+a.button:active {
+    transform: translate(0, 0);
+    box-shadow: none;
+}
+
+/* Tables */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.5rem 0;
+    border: 2px solid #222;
+}
+
+th, td {
+    text-align: left;
+    padding: 0.6rem;
+    border: 1px solid #222;
+}
+
+th {
+    background-color: #222;
+    color: white;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+tr:nth-child(even) {
+    background-color: #f0f0f0;
+}
+
+/* Links */
+a {
+    color: #222;
+    text-decoration: none;
+    border-bottom: 2px solid #222;
+    font-weight: bold;
+}
+
+a:hover {
+    background-color: #222;
+    color: white;
+}
+
+a.button {
+    border-bottom: none;
+}
+
+/* Copy Link Functionality */
+.copy-link-container {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.copy-link-container input {
+    flex-grow: 1;
+    margin-right: 0.5rem;
+}
+
+/* Success/Error Messages */
+.message {
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    border: 2px solid #222;
+}
+
+.success {
+    background-color: #d1ffd1;
+    border-color: #00aa00;
+}
+
+.error {
+    background-color: #ffd1d1;
+    border-color: #aa0000;
+}
+
+/* File Upload */
+input[type="file"] {
+    border: 2px dashed #222;
+    padding: 1.5rem;
+    background-color: #f7f7f7;
+    text-align: center;
+    cursor: pointer;
+}
+
+/* Icon Buttons */
+.icon-button {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #222;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    margin: 0 5px;
+    transition: all 0.2s;
+}
+
+.icon-button svg {
+    width: 20px;
+    height: 20px;
+    fill: #fff;
+}
+
+.icon-button:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 3px 3px 0 rgb(0 255 183);
+}
+
+.icon-button:active {
+    transform: translate(0, 0);
+    box-shadow: none;
+}
+
+.icon-button.delete:hover {
+    box-shadow: 3px 3px 0 rgb(220 0 0);
+}
+
+.action-buttons {
+    display: flex;
+    align-items: center;
+}
+
+.link-input {
+    flex-grow: 1;
+    margin-right: 5px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    body {
+        padding: 1rem;
+    }
+
+    .container {
+        padding: 1rem;
+    }
+
+    h1 {
+        font-size: 1.8rem;
+    }
+
+    button, a.button {
+        width: 100%;
+        margin-right: 0;
+        margin-bottom: 0.5rem;
+    }
+
+    .icon-button {
+        width: 36px;
+        height: 36px;
+        min-width: 36px;
+    }
+}

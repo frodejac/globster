@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Home</title>
+    <link rel="stylesheet" type="text/css" href="/static/style.css">
+</head>
+<body>
+<div class="container">
+    <h1>Welcome</h1>
+    <p>Please login to continue</p>
+    {{ if .GoogleAuth }}
+    <a href="/login/" class="button">Login with Google</a>
+    {{ else if .StaticAuth }}
+    <form action="/login/" method="POST">
+        <div>
+            <label for="username">Username:</label>
+            <input type="text" id="username" name="username" required>
+        </div>
+        <div>
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" required>
+        </div>
+        {{ if .Incorrect }}
+        <div class="message error">Invalid username or password.</div>
+        {{ end }}
+        <div>
+            <button type="submit">Login</button>
+        </div>
+    </form>
+    {{ end }}
+</div>
+</body>
+</html>

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Upload Files</title>
+    <link rel="stylesheet" type="text/css" href="/static/style.css">
+</head>
+<body>
+<div class="container">
+    <h1>Upload Files</h1>
+    <form action="/upload/{{ .Token }}/" method="POST" enctype="multipart/form-data">
+        <div>
+            <label for="file">Select files to upload:</label>
+            <input type="file" id="file" name="file" multiple>
+        </div>
+        <div>
+            <button type="submit">Upload</button>
+        </div>
+    </form>
+</div>
+</body>
+</html>

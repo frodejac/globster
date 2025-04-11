@@ -1,0 +1,7 @@
+*.db
+*.db-shm
+*.db-wal
+uploads/
+users.json
+.envrc
+.idea/
