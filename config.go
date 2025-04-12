@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/coreos/go-oidc/v3/oidc"
+	"github.com/frodejac/globster/internal/auth/google"
 	"log"
 	"net/http"
 	"os"
@@ -67,7 +68,7 @@ type StaticAuthConfig struct {
 
 type AuthConfig struct {
 	Type   AuthType
-	Google *GoogleAuthConfig
+	Google *google.Config
 	Static *StaticAuthConfig
 }
 
@@ -211,7 +212,7 @@ func LoadConfig() *Config {
 		uploadPath = "uploads"
 	}
 
-	googleAuth := &GoogleAuthConfig{
+	googleAuth := &google.Config{
 		AllowedDomains:               allowedDomains,
 		AllowedGroups:                allowedGroups,
 		Issuer:                       "https://accounts.google.com",

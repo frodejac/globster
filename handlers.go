@@ -41,9 +41,8 @@ func (app *Application) homeHandler(w http.ResponseWriter, r *http.Request) {
 
 func (app *Application) loginHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodGet && app.Config.Auth.Type == AuthTypeGoogle {
-		state := app.setAuthState(w)
-		url := app.OAuth.AuthCodeURL(state)
-		http.Redirect(w, r, url, http.StatusFound)
+		app.GoogleAuth.Redirect(w, r)
+		return
 	}
 	if r.Method == http.MethodPost && app.Config.Auth.Type == AuthTypeStatic {
 		if err := r.ParseForm(); err != nil {
@@ -68,46 +67,14 @@ func (app *Application) googleAuthCallbackHandler(w http.ResponseWriter, r *http
 		app.render404(w)
 		return
 	}
-	if err := app.validateAuthState(r); err != nil {
-		log.Printf("Invalid auth state: %v", err)
-		http.Error(w, "Bad request", http.StatusBadRequest)
+	if err := app.GoogleAuth.Callback(w, r); err != nil {
+		log.Printf("Google OAuth callback error: %v", err)
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
-
-	oauth2Token, err := app.exchangeToken(r.Context(), r.FormValue("code"))
-	if err != nil {
-		log.Printf("Failed to exchange token: %v", err)
-		http.Error(w, "Failed to exchange token", http.StatusInternalServerError)
-	}
-	log.Printf("Exchanged code for token")
-
-	userinfo, err := app.getGoogleUserInfo(r.Context(), oauth2Token)
-	if err != nil {
-		log.Printf("Failed to get user info: %v", err)
-		http.Error(w, "Failed to get user info", http.StatusInternalServerError)
-		return
-	}
-	log.Printf("User info: %v", userinfo)
-
-	// Check email domain
-	if !app.verifyDomain(userinfo) {
-		log.Printf("Unauthorized domain: %s", userinfo.Email)
-		http.Error(w, "Unauthorized", http.StatusForbidden)
-		return
-	}
-	log.Printf("Authorized domain: %s", userinfo.Email)
-
-	if !app.verifyGroupMembership(userinfo) {
-		log.Printf("Unauthorized group membership: %s", userinfo.Email)
-		http.Error(w, "Unauthorized", http.StatusForbidden)
-		return
-	}
-	log.Printf("Authorized group membership: %s", userinfo.Email)
-
 	// Set session cookie
 	app.createSession(w)
-	// Remove oauth state cookie
-	app.clearAuthState(w)
+	// Redirect to admin home
 	http.Redirect(w, r, "/admin/home/", http.StatusFound)
 }
 
