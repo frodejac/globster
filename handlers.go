@@ -49,7 +49,9 @@ func (app *Application) loginHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Bad request", http.StatusBadRequest)
 			return
 		}
-		if ok := app.validateStaticAuth(r.FormValue("username"), r.FormValue("password")); !ok {
+		username := r.PostForm.Get("username")
+		password := r.PostForm.Get("password")
+		if ok := app.StaticAuth.Validate(username, password); !ok {
 			log.Printf("Invalid login attempt: %s", r.FormValue("username"))
 			http.Redirect(w, r, "/?state=1", http.StatusFound)
 			return

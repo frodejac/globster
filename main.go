@@ -2,8 +2,8 @@ package main
 
 import (
 	"database/sql"
-	"encoding/json"
 	g "github.com/frodejac/globster/internal/auth/google"
+	s "github.com/frodejac/globster/internal/auth/static"
 	_ "github.com/mattn/go-sqlite3"
 	"html/template"
 	"log"
@@ -18,9 +18,9 @@ type Application struct {
 	Templates  *template.Template
 	Users      map[string]string
 	GoogleAuth *g.Auth
+	StaticAuth *s.Auth
 }
 
-// Modified main function to use FileServer
 func main() {
 	config := LoadConfig()
 	app := &Application{
@@ -37,17 +37,11 @@ func main() {
 	}
 
 	if config.Auth.Type == AuthTypeStatic {
-		data, err := os.ReadFile(config.Auth.Static.UsersJsonPath)
+		staticAuth, err := s.NewAuthFromConfig(config.Auth.Static)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatalf("Failed to create static auth: %v", err)
 		}
-		if err := json.Unmarshal(data, &app.Users); err != nil {
-			log.Fatalf("Failed to unmarshal users: %v", err)
-		}
-		if len(app.Users) == 0 {
-			log.Fatal("No users found in static auth config")
-		}
-		log.Printf("Loaded %d users from static auth config", len(app.Users))
+		app.StaticAuth = staticAuth
 	}
 
 	// Create uploads directory if it doesn't exist

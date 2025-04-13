@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/frodejac/globster/internal/auth/google"
+	"github.com/frodejac/globster/internal/auth/static"
 	"log"
 	"net/http"
 	"os"
@@ -12,49 +13,6 @@ import (
 	"time"
 )
 
-type GoogleAuthConfig struct {
-	AllowedDomains               []string
-	AllowedGroups                []string
-	Issuer                       string
-	ClientID                     string
-	ClientSecret                 string
-	ServiceAccountConfigJsonPath string
-	Scopes                       []string
-}
-
-func (g *GoogleAuthConfig) Validate() error {
-	errors := []string{}
-	warnings := []string{}
-	if g.ClientID == "" {
-		errors = append(errors, "ClientID is required")
-	}
-	if g.ClientSecret == "" {
-		errors = append(errors, "ClientSecret is required")
-	}
-	if g.ServiceAccountConfigJsonPath == "" {
-		errors = append(errors, "ServiceAccountConfigJsonPath is required")
-	}
-	if g.Issuer == "" {
-		errors = append(errors, "Issuer is required")
-	}
-	if len(g.AllowedDomains) == 0 {
-		warnings = append(warnings, "AllowedDomains is empty, all domains will be allowed")
-	}
-	if len(g.AllowedGroups) == 0 {
-		warnings = append(warnings, "AllowedGroups is empty, all groups will be allowed")
-	}
-	if len(g.Scopes) == 0 {
-		warnings = append(warnings, "Scopes is empty")
-	}
-	if len(errors) > 0 {
-		return fmt.Errorf("configuration errors: %s", strings.Join(errors, ", "))
-	}
-	if len(warnings) > 0 {
-		fmt.Printf("configuration warnings: %s\n", strings.Join(warnings, ", "))
-	}
-	return nil
-}
-
 type AuthType string
 
 const (
@@ -62,14 +20,10 @@ const (
 	AuthTypeGoogle AuthType = "google"
 )
 
-type StaticAuthConfig struct {
-	UsersJsonPath string
-}
-
 type AuthConfig struct {
 	Type   AuthType
 	Google *google.Config
-	Static *StaticAuthConfig
+	Static *static.Config
 }
 
 type ServerConfig struct {
@@ -235,7 +189,7 @@ func LoadConfig() *Config {
 	auth := &AuthConfig{
 		Type:   authType,
 		Google: googleAuth,
-		Static: &StaticAuthConfig{
+		Static: &static.Config{
 			UsersJsonPath: staticAuthPath,
 		},
 	}
