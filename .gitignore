@@ -1,7 +1,7 @@
 *.db
 *.db-shm
 *.db-wal
-uploads/
+data/uploads
 users.json
 .envrc
 .idea/

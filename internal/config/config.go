@@ -1,11 +1,10 @@
-package main
+package config
 
 import (
 	"fmt"
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/frodejac/globster/internal/auth/google"
 	"github.com/frodejac/globster/internal/auth/static"
-	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -55,7 +54,7 @@ type UploadConfig struct {
 }
 
 type Config struct {
-	BaseURL       string
+	BaseUrl       string
 	StaticPath    string
 	TemplatePath  string
 	IsDevelopment bool
@@ -66,7 +65,7 @@ type Config struct {
 	Auth          *AuthConfig
 }
 
-func LoadConfig() *Config {
+func LoadConfig() (*Config, error) {
 	allowedDomainsStr := os.Getenv("ALLOWED_DOMAINS")
 	if allowedDomainsStr == "" {
 		allowedDomainsStr = "*"
@@ -101,7 +100,7 @@ func LoadConfig() *Config {
 	}
 	authType := AuthType(authTypeStr)
 	if authType != AuthTypeStatic && authType != AuthTypeGoogle {
-		log.Fatalf("Invalid AUTH_TYPE: %s", authTypeStr)
+		return nil, fmt.Errorf("invalid AUTH_TYPE: %s", authTypeStr)
 	}
 
 	baseURL := os.Getenv("BASE_URL")
@@ -129,7 +128,7 @@ func LoadConfig() *Config {
 	}
 	maxFileSize, err := strconv.ParseInt(maxFileSizeStr, 10, 64)
 	if err != nil {
-		log.Fatalf("strconv.ParseInt: %v", err)
+		return nil, fmt.Errorf("failed to parse MAX_FILE_SIZE_BYTES: %v", err)
 	}
 
 	scopes := os.Getenv("SCOPES")
@@ -177,7 +176,7 @@ func LoadConfig() *Config {
 	}
 	if authType == AuthTypeGoogle {
 		if err := googleAuth.Validate(); err != nil {
-			log.Fatalf("googleAuth.Validate: %v", err)
+			return nil, fmt.Errorf("failed to validate Google auth config: %v", err)
 		}
 	}
 	server := &ServerConfig{
@@ -196,7 +195,7 @@ func LoadConfig() *Config {
 
 	sessionLifetime, err := time.ParseDuration(sessionLifetimeStr)
 	if err != nil {
-		log.Fatalf("time.ParseDuration: %v", err)
+		return nil, fmt.Errorf("failed to parse SESSION_LIFETIME: %v", err)
 	}
 	session := &SessionConfig{
 		Lifetime: sessionLifetime,
@@ -219,8 +218,8 @@ func LoadConfig() *Config {
 	if baseURL == "" {
 		baseURL = "http://localhost:" + serverPort
 	}
-	return &Config{
-		BaseURL:       baseURL,
+	cfg := &Config{
+		BaseUrl:       baseURL,
 		StaticPath:    staticPath,
 		TemplatePath:  templatePath,
 		IsDevelopment: isDevelopment,
@@ -230,4 +229,5 @@ func LoadConfig() *Config {
 		Upload:        upload,
 		Auth:          auth,
 	}
+	return cfg, nil
 }
