@@ -5,6 +5,7 @@ import (
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/frodejac/globster/internal/auth/google"
 	"github.com/frodejac/globster/internal/auth/static"
+	"golang.org/x/time/rate"
 	"log/slog"
 	"net/http"
 	"os"
@@ -28,9 +29,10 @@ const (
 )
 
 type AuthConfig struct {
-	Type   AuthType
-	Google *google.Config
-	Static *static.Config
+	Type      AuthType
+	RateLimit rate.Limit
+	Google    *google.Config
+	Static    *static.Config
 }
 
 type ServerConfig struct {
@@ -194,6 +196,18 @@ func LoadConfig() (*Config, error) {
 	if staticAuthPath == "" {
 		staticAuthPath = "users.json"
 	}
+	staticAuthRateLimitStr := os.Getenv("STATIC_AUTH_RATE_LIMIT")
+	if staticAuthRateLimitStr == "" {
+		staticAuthRateLimitStr = "0" // no rate limit
+	}
+	staticAuthRateLimitValue, err := strconv.ParseFloat(staticAuthRateLimitStr, 64)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse STATIC_AUTH_RATE_LIMIT: %v", err)
+	}
+	staticAuthRateLimit := rate.Limit(staticAuthRateLimitValue)
+	if staticAuthRateLimit <= 0 {
+		staticAuthRateLimit = rate.Inf
+	}
 	staticPath := os.Getenv("STATIC_PATH")
 	if staticPath == "" {
 		staticPath = "web/static"
@@ -230,8 +244,9 @@ func LoadConfig() (*Config, error) {
 		Path: databasePath,
 	}
 	auth := &AuthConfig{
-		Type:   authType,
-		Google: googleAuth,
+		Type:      authType,
+		RateLimit: staticAuthRateLimit,
+		Google:    googleAuth,
 		Static: &static.Config{
 			UsersJsonPath: staticAuthPath,
 		},

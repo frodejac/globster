@@ -5,6 +5,7 @@ import (
 	"github.com/frodejac/globster/internal/auth/google"
 	"github.com/frodejac/globster/internal/auth/static"
 	"github.com/frodejac/globster/internal/config"
+	"golang.org/x/time/rate"
 	"html/template"
 	"log/slog"
 	"net/http"
@@ -14,9 +15,10 @@ type AuthHandler struct {
 	BaseHandler
 	googleAuth *google.Auth
 	staticAuth *static.Auth
+	limiter    *rate.Limiter
 }
 
-func NewAuthHandler(authType config.AuthType, sessions *auth.SessionService, templates *template.Template, googleAuth *google.Auth, staticAuth *static.Auth) *AuthHandler {
+func NewAuthHandler(authType config.AuthType, rateLimit rate.Limit, sessions *auth.SessionService, templates *template.Template, googleAuth *google.Auth, staticAuth *static.Auth) *AuthHandler {
 	return &AuthHandler{
 		BaseHandler: BaseHandler{
 			authType:  authType,
@@ -25,6 +27,7 @@ func NewAuthHandler(authType config.AuthType, sessions *auth.SessionService, tem
 		},
 		googleAuth: googleAuth,
 		staticAuth: staticAuth,
+		limiter:    rate.NewLimiter(rateLimit, 1),
 	}
 }
 
@@ -34,6 +37,11 @@ func (h *AuthHandler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if r.Method == http.MethodPost && h.authType == config.AuthTypeStatic {
+		if !h.limiter.Allow() {
+			slog.Warn("Rate limit exceeded", slog.String("username", r.PostForm.Get("username")))
+			http.Error(w, "Too many requests", http.StatusTooManyRequests)
+			return
+		}
 		if err := r.ParseForm(); err != nil {
 			http.Error(w, "Bad request", http.StatusBadRequest)
 			return

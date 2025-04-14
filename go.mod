@@ -4,10 +4,10 @@ go 1.24
 
 require (
 	github.com/coreos/go-oidc/v3 v3.14.1
-	github.com/google/uuid v1.6.0
 	github.com/mattn/go-sqlite3 v1.14.27
 	golang.org/x/crypto v0.36.0
 	golang.org/x/oauth2 v0.29.0
+	golang.org/x/time v0.11.0
 	google.golang.org/api v0.228.0
 )
 
@@ -20,6 +20,7 @@ require (
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/google/s2a-go v0.1.9 // indirect
+	github.com/google/uuid v1.6.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.6 // indirect
 	github.com/googleapis/gax-go/v2 v2.14.1 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect

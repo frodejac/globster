@@ -104,10 +104,11 @@ func main() {
 	}
 
 	apiCfg := &api.Config{
-		AuthType:   cfg.Auth.Type,
-		BaseUrl:    cfg.BaseUrl,
-		StaticPath: cfg.StaticPath,
-		UploadPath: cfg.Upload.Path,
+		AuthType:            cfg.Auth.Type,
+		BaseUrl:             cfg.BaseUrl,
+		StaticAuthRateLimit: cfg.Auth.RateLimit,
+		StaticPath:          cfg.StaticPath,
+		UploadPath:          cfg.Upload.Path,
 	}
 
 	router := api.NewRouter(

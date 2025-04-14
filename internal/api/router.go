@@ -8,15 +8,17 @@ import (
 	"github.com/frodejac/globster/internal/config"
 	"github.com/frodejac/globster/internal/database/links"
 	"github.com/frodejac/globster/internal/uploads"
+	"golang.org/x/time/rate"
 	"html/template"
 	"net/http"
 )
 
 type Config struct {
-	AuthType   config.AuthType
-	BaseUrl    string
-	StaticPath string
-	UploadPath string
+	AuthType            config.AuthType
+	StaticAuthRateLimit rate.Limit
+	BaseUrl             string
+	StaticPath          string
+	UploadPath          string
 }
 
 type handlers struct {
@@ -45,7 +47,7 @@ func NewRouter(
 		config: config,
 		handlers: &handlers{
 			admin:  h.NewAdminHandler(config.AuthType, config.BaseUrl, sessions, templates, links, uploadService),
-			auth:   h.NewAuthHandler(config.AuthType, sessions, templates, googleAuth, staticAuth),
+			auth:   h.NewAuthHandler(config.AuthType, config.StaticAuthRateLimit, sessions, templates, googleAuth, staticAuth),
 			home:   h.NewHomeHandler(config.AuthType, sessions, templates),
 			upload: h.NewUploadHandler(config.AuthType, sessions, templates, uploadService),
 		},
