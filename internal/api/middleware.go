@@ -1,15 +1,48 @@
 package api
 
 import (
-	"log"
+	"context"
+	"github.com/frodejac/globster/internal/random"
+	"log/slog"
 	"net/http"
+	"time"
 )
+
+type RequestIDKey struct{}
+
+// RequestIdMiddleware adds a unique request ID to each request
+func RequestIdMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestID := r.Header.Get("X-Request-ID")
+		if requestID == "" {
+			requestID = random.HexString(16)
+			r.Header.Set("X-Request-ID", requestID)
+		}
+		r = r.WithContext(context.WithValue(r.Context(), RequestIDKey{}, requestID))
+		next.ServeHTTP(w, r)
+	})
+}
 
 // LoggingMiddleWare logs the incoming requests
 func LoggingMiddleWare(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("[%s] %s %s", r.RemoteAddr, r.Method, r.URL.Path)
+		t0 := time.Now()
+		slog.Info(
+			"Request received",
+			slog.String("method", r.Method),
+			slog.String("path", r.URL.Path),
+			slog.String("remote_addr", r.RemoteAddr),
+			slog.Any("request_id", r.Context().Value(RequestIDKey{})),
+		)
 		next.ServeHTTP(w, r)
+		slog.Info(
+			"Request completed",
+			slog.String("method", r.Method),
+			slog.String("path", r.URL.Path),
+			slog.String("remote_addr", r.RemoteAddr),
+			slog.Any("request_id", r.Context().Value(RequestIDKey{})),
+			slog.Duration("duration", time.Since(t0)),
+		)
 	})
 }
 

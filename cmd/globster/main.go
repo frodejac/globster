@@ -11,23 +11,34 @@ import (
 	"github.com/frodejac/globster/internal/database/sessions"
 	"github.com/frodejac/globster/internal/uploads"
 	"html/template"
-	"log"
+	"log/slog"
 	"net/http"
+	"os"
 	"path/filepath"
 )
 
 func main() {
 	cfg, err := config.LoadConfig()
 	if err != nil {
-		log.Fatalf("Failed to load config: %v", err)
+		panic(err)
 	}
+	logOptions := &slog.HandlerOptions{Level: cfg.Logger.Level}
+	var logHandler slog.Handler
+	if cfg.Logger.Format == config.LogFormatJSON {
+		logHandler = slog.NewJSONHandler(os.Stdout, logOptions)
+	} else {
+		logHandler = slog.NewTextHandler(os.Stdout, logOptions)
+	}
+	logger := slog.New(logHandler)
+	slog.SetDefault(logger)
 
 	var googleAuth *g.Auth
 	if cfg.Auth.Type == config.AuthTypeGoogle {
 		cfg.Auth.Google.RedirectURL = cfg.BaseUrl + "/oauth/callback"
 		googleAuth, err = g.NewAuthFromConfig(cfg.Auth.Google)
 		if err != nil {
-			log.Fatalf("Failed to create Google auth: %v", err)
+			slog.Error("Failed to create Google auth", "error", err)
+			os.Exit(1)
 		}
 	}
 
@@ -35,24 +46,28 @@ func main() {
 	if cfg.Auth.Type == config.AuthTypeStatic {
 		staticAuth, err = s.NewAuthFromConfig(cfg.Auth.Static)
 		if err != nil {
-			log.Fatalf("Failed to create static auth: %v", err)
+			slog.Error("Failed to create static auth", "error", err)
+			os.Exit(1)
 		}
 	}
 
 	db, err := database.Open(cfg.Database.Path)
 	if err != nil {
-		log.Fatalf("Failed to open database: %v", err)
+		slog.Error("Failed to open database", "error", err)
+		os.Exit(1)
 	}
 	defer db.Close()
 
 	linkStore, err := links.NewLinkStore(db)
 	if err != nil {
-		log.Fatalf("Failed to create link store: %v", err)
+		slog.Error("Failed to create link store", "error", err)
+		os.Exit(1)
 	}
 
 	sessionStore, err := sessions.NewSessionStore(db)
 	if err != nil {
-		log.Fatalf("Failed to create session store: %v", err)
+		slog.Error("Failed to create session store", "error", err)
+		os.Exit(1)
 	}
 
 	sessionCookieCfg := &auth.SessionCookieConfig{
@@ -78,12 +93,14 @@ func main() {
 			AllowedMimeTypes:  cfg.Upload.AllowedMimeTypes,
 		})
 	if err != nil {
-		log.Fatalf("Failed to create upload service: %v", err)
+		slog.Error("Failed to create upload service", "error", err)
+		os.Exit(1)
 	}
 
 	templates, err := template.ParseGlob(filepath.Join(cfg.TemplatePath, "*.html"))
 	if err != nil {
-		log.Fatalf("Failed to parse templates: %v", err)
+		slog.Error("Failed to parse templates", "error", err)
+		os.Exit(1)
 	}
 
 	apiCfg := &api.Config{
@@ -109,10 +126,12 @@ func main() {
 	// Add middleware
 	handler := api.SecurityHeadersMiddleware(cfg.Server.UseHsts)(mux)
 	handler = api.LoggingMiddleWare(handler)
+	handler = api.RequestIdMiddleware(handler)
 
-	log.Printf("Starting server on port %s", cfg.Server.Port)
+	slog.Info("Starting server", "port", cfg.Server.Port)
 	err = http.ListenAndServe(":"+cfg.Server.Port, handler)
 	if err != nil {
-		log.Fatalf("Failed to start server: %v", err)
+		slog.Error("Failed to start server", "error", err)
+		os.Exit(1)
 	}
 }

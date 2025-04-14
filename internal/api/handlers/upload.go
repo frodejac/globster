@@ -5,7 +5,7 @@ import (
 	"github.com/frodejac/globster/internal/config"
 	"github.com/frodejac/globster/internal/uploads"
 	"html/template"
-	"log"
+	"log/slog"
 	"net/http"
 )
 
@@ -32,7 +32,7 @@ func NewUploadHandler(authType config.AuthType, sessions *auth.SessionService, t
 func (h *UploadHandler) HandleGetUpload(w http.ResponseWriter, r *http.Request) {
 	token := r.PathValue("token")
 	if _, err := h.uploads.ValidateToken(token); err != nil {
-		log.Printf("Invalid token: %s", token)
+		slog.Debug("Invalid token", "token", token)
 		h.render404(w)
 		return
 	}
@@ -43,12 +43,12 @@ func (h *UploadHandler) HandlePostUpload(w http.ResponseWriter, r *http.Request)
 	token := r.PathValue("token")
 	link, err := h.uploads.ValidateToken(token)
 	if err != nil {
-		log.Printf("Invalid token: %s", token)
+		slog.Debug("Invalid token", "token", token)
 		h.render404(w)
 		return
 	}
 	if err := h.uploads.Upload(r, link); err != nil {
-		log.Printf("Upload error: %v", err)
+		slog.Error("Upload error", "error", err)
 		http.Redirect(w, r, "/upload/error/", http.StatusFound)
 		return
 	}

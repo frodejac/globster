@@ -5,6 +5,7 @@ import (
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/frodejac/globster/internal/auth/google"
 	"github.com/frodejac/globster/internal/auth/static"
+	"log/slog"
 	"net/http"
 	"os"
 	"strconv"
@@ -17,6 +18,13 @@ type AuthType string
 const (
 	AuthTypeStatic AuthType = "static"
 	AuthTypeGoogle AuthType = "google"
+)
+
+type LogFormat string
+
+const (
+	LogFormatText LogFormat = "text"
+	LogFormatJSON LogFormat = "json"
 )
 
 type AuthConfig struct {
@@ -55,11 +63,17 @@ type UploadConfig struct {
 	AllowedExtensions []string
 }
 
+type LoggerConfig struct {
+	Level  slog.Level
+	Format LogFormat
+}
+
 type Config struct {
 	BaseUrl       string
 	StaticPath    string
 	TemplatePath  string
 	IsDevelopment bool
+	Logger        *LoggerConfig
 	Server        *ServerConfig
 	Database      *DatabaseConfig
 	Session       *SessionConfig
@@ -118,6 +132,20 @@ func LoadConfig() (*Config, error) {
 	host := os.Getenv("HOST")
 	if host == "" {
 		host = "localhost"
+	}
+
+	logLevelStr := os.Getenv("LOG_LEVEL")
+	if logLevelStr == "" {
+		logLevelStr = "info"
+	}
+	logLevel, _ := getLogLevel(logLevelStr)
+	logFormatStr := os.Getenv("LOG_FORMAT")
+	if logFormatStr == "" {
+		logFormatStr = "text"
+	}
+	logFormat := LogFormat(logFormatStr)
+	if logFormat != LogFormatText && logFormat != LogFormatJSON {
+		logFormat = LogFormatText
 	}
 
 	maxFileSizeStr := os.Getenv("MAX_FILE_SIZE_BYTES")
@@ -234,11 +262,18 @@ func LoadConfig() (*Config, error) {
 	if baseURL == "" {
 		baseURL = "http://localhost:" + serverPort
 	}
+
+	logger := &LoggerConfig{
+		Level:  logLevel,
+		Format: LogFormatText,
+	}
+
 	cfg := &Config{
 		BaseUrl:       baseURL,
 		StaticPath:    staticPath,
 		TemplatePath:  templatePath,
 		IsDevelopment: isDevelopment,
+		Logger:        logger,
 		Server:        server,
 		Database:      database,
 		Session:       session,
@@ -246,4 +281,19 @@ func LoadConfig() (*Config, error) {
 		Auth:          auth,
 	}
 	return cfg, nil
+}
+
+func getLogLevel(levelStr string) (slog.Level, error) {
+	switch strings.ToLower(levelStr) {
+	case "debug":
+		return slog.LevelDebug, nil
+	case "info":
+		return slog.LevelInfo, nil
+	case "warn":
+		return slog.LevelWarn, nil
+	case "error":
+		return slog.LevelError, nil
+	default:
+		return slog.LevelInfo, fmt.Errorf("invalid log level: %s", levelStr)
+	}
 }

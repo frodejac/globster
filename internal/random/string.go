@@ -13,3 +13,13 @@ func String(length int) string {
 	}
 	return string(b)
 }
+
+func HexString(length int) string {
+	const charset = "0123456789abcdef"
+	b := make([]byte, length)
+	_, _ = rand.Read(b)
+	for i := range b {
+		b[i] = charset[b[i]%byte(len(charset))]
+	}
+	return string(b)
+}

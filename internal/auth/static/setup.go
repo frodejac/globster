@@ -3,7 +3,6 @@ package static
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 )
 
@@ -19,6 +18,5 @@ func NewAuthFromConfig(config *Config) (*Auth, error) {
 	if len(auth.Users) == 0 {
 		return nil, fmt.Errorf("no users found in static auth config")
 	}
-	log.Printf("Loaded %d users from static auth config", len(auth.Users))
 	return auth, nil
 }

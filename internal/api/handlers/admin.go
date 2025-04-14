@@ -6,7 +6,7 @@ import (
 	"github.com/frodejac/globster/internal/database/links"
 	"github.com/frodejac/globster/internal/uploads"
 	"html/template"
-	"log"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"time"
@@ -39,7 +39,7 @@ type AdminData struct {
 func (h *AdminHandler) HandleHome(w http.ResponseWriter, r *http.Request) {
 	activeLinks, err := h.linkStore.ListActive()
 	if err != nil {
-		log.Printf("Failed to fetch active links: %v", err)
+		slog.Error("Failed to fetch active links", "error", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
@@ -85,7 +85,7 @@ func (h *AdminHandler) HandleCreateLink(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	if err := h.uploads.CreateLink(directory, expiresAt, remainingUses); err != nil {
-		log.Printf("Failed to create upload link: %v", err)
+		slog.Error("Failed to create upload link", "error", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
@@ -105,7 +105,7 @@ func (h *AdminHandler) HandleDeactivateLink(w http.ResponseWriter, r *http.Reque
 	}
 	// Deactivate the link in the database
 	if err := h.uploads.DeactivateLink(token); err != nil {
-		log.Printf("Failed to deactivate upload link: %v", err)
+		slog.Error("Failed to deactivate upload link", "error", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}

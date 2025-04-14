@@ -4,7 +4,7 @@ import (
 	"github.com/frodejac/globster/internal/auth"
 	"github.com/frodejac/globster/internal/config"
 	"html/template"
-	"log"
+	"log/slog"
 	"net/http"
 )
 
@@ -40,7 +40,7 @@ func (h *HomeHandler) HandleHome(w http.ResponseWriter, r *http.Request) {
 	}
 	ok, err := h.sessions.Validate(r)
 	if err != nil {
-		log.Printf("Error validating session: %v", err)
+		slog.Error("Error validating session", "error", err)
 	}
 	if ok {
 		http.Redirect(w, r, "/admin/home/", http.StatusFound)

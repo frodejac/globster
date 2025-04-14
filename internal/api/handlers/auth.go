@@ -6,7 +6,7 @@ import (
 	"github.com/frodejac/globster/internal/auth/static"
 	"github.com/frodejac/globster/internal/config"
 	"html/template"
-	"log"
+	"log/slog"
 	"net/http"
 )
 
@@ -41,19 +41,20 @@ func (h *AuthHandler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		username := r.PostForm.Get("username")
 		password := r.PostForm.Get("password")
 		if ok := h.staticAuth.Validate(username, password); !ok {
-			log.Printf("Invalid login attempt: %s", r.FormValue("username"))
+			slog.Warn("Invalid login attempt", slog.String("username", username))
 			http.Redirect(w, r, "/?state=1", http.StatusFound)
 			return
 		}
 		if _, err := h.sessions.Create(w); err != nil {
-			log.Printf("Error creating session: %v", err)
+			slog.Error("Error creating session", slog.String("username", username), slog.Any("error", err))
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
 		http.Redirect(w, r, "/admin/home/", http.StatusFound)
+		return
 	}
 	// Invalid method/auth type combination
-	log.Printf("Invalid login method or auth type (method: %s, auth type: %s)", r.Method, h.authType)
+	slog.Debug("Invalid login method or auth type", slog.String("method", r.Method), slog.String("auth_type", string(h.authType)))
 	h.render404(w)
 }
 
@@ -63,13 +64,13 @@ func (h *AuthHandler) HandleGoogleOAuthCallback(w http.ResponseWriter, r *http.R
 		return
 	}
 	if err := h.googleAuth.Callback(w, r); err != nil {
-		log.Printf("Google OAuth callback error: %v", err)
+		slog.Error("Google OAuth callback error", slog.Any("error", err))
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 	// Set session cookie
 	if _, err := h.sessions.Create(w); err != nil {
-		log.Printf("Error creating session: %v", err)
+		slog.Error("Error creating session", slog.Any("error", err))
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
@@ -79,7 +80,7 @@ func (h *AuthHandler) HandleGoogleOAuthCallback(w http.ResponseWriter, r *http.R
 
 func (h *AuthHandler) HandleLogout(w http.ResponseWriter, r *http.Request) {
 	if err := h.sessions.Destroy(w, r); err != nil {
-		log.Printf("Error destroying session: %v", err)
+		slog.Error("Error destroying session", slog.Any("error", err))
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
