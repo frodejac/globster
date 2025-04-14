@@ -4,6 +4,7 @@ import (
 	"github.com/frodejac/globster/internal/auth"
 	"github.com/frodejac/globster/internal/config"
 	"html/template"
+	"log/slog"
 	"net/http"
 )
 
@@ -16,7 +17,8 @@ type BaseHandler struct {
 func (b *BaseHandler) renderTemplate(w http.ResponseWriter, name string, data interface{}) {
 	// Execute the template
 	if err := b.templates.ExecuteTemplate(w, name, data); err != nil {
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		slog.Error("Failed to render template", "error", err.Error())
+		//http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
 }
 

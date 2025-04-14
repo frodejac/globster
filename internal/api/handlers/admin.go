@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"github.com/frodejac/globster/internal/auth"
 	"github.com/frodejac/globster/internal/config"
 	"github.com/frodejac/globster/internal/database/links"
@@ -8,6 +9,7 @@ import (
 	"html/template"
 	"log/slog"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 )
@@ -33,7 +35,9 @@ func NewAdminHandler(authType config.AuthType, baseUrl string, sessions *auth.Se
 }
 
 type AdminData struct {
-	Links []links.Link
+	Links       []links.Link
+	Directories []uploads.Directory
+	Directory   *uploads.Directory
 }
 
 func (h *AdminHandler) HandleHome(w http.ResponseWriter, r *http.Request) {
@@ -111,4 +115,61 @@ func (h *AdminHandler) HandleDeactivateLink(w http.ResponseWriter, r *http.Reque
 	}
 
 	http.Redirect(w, r, "/admin/home/", http.StatusFound)
+}
+
+func (h *AdminHandler) HandleListDirectories(w http.ResponseWriter, r *http.Request) {
+	directories, err := h.uploads.ListDirectories()
+	if err != nil {
+		slog.Error("Failed to fetch directories", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	h.renderTemplate(w, "admin_directories.html", AdminData{Directories: directories})
+}
+
+func (h *AdminHandler) HandleListDirectory(w http.ResponseWriter, r *http.Request) {
+	slog.Info("List directory")
+	dirName := r.PathValue("directory")
+	if dirName == "" {
+		http.Error(w, "Missing directory", http.StatusBadRequest)
+		return
+	}
+	directory, err := h.uploads.ListFiles(dirName)
+	if err != nil {
+		slog.Error("Failed to fetch files", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	if directory == nil {
+		slog.Error("Directory not found", "directory", dirName)
+		http.Error(w, "Directory not found", http.StatusNotFound)
+		return
+	}
+	h.renderTemplate(w, "admin_directory.html", AdminData{Directory: directory})
+}
+
+func (h *AdminHandler) HandleDownloadFile(w http.ResponseWriter, r *http.Request) {
+	slog.Info("Download file")
+	dirName := r.PathValue("directory")
+	fileName := r.PathValue("filename")
+	if dirName == "" || fileName == "" {
+		http.Error(w, "Missing directory or filename", http.StatusBadRequest)
+		return
+	}
+	filePath, fileInfo, err := h.uploads.GetFilePath(dirName, fileName)
+	if err != nil {
+		slog.Error("Failed to get file path", "error", err)
+		h.render404(w)
+		return
+	}
+	// Open the file for reading
+	file, err := os.Open(filePath)
+	if err != nil {
+		slog.Error("Failed to open file", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	defer file.Close()
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", fileInfo.Name()))
+	http.ServeContent(w, r, filePath, fileInfo.ModTime(), file)
 }
