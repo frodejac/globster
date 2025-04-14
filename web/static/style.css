@@ -236,6 +236,50 @@ input[type="file"] {
     margin-right: 5px;
 }
 
+/* Navigation */
+
+nav {
+    height: 60px;
+    padding-bottom: 5px;
+    border-bottom: 3px solid #222;
+}
+
+nav ul {
+    list-style: none;
+    align-content: center;
+    height: 100%;
+    border-bottom: 3px solid #222;
+    font-weight: bold;
+    font-size: 1.6rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+nav li {
+    float: left;
+    padding: 0 1rem;
+}
+
+nav a {
+    border-bottom: none;
+    transition: all 0.2s;
+}
+
+nav a:hover {
+    background-color: #222;
+    color: white;
+    box-shadow: 3px 3px rgb(0 255 183);
+}
+
+.nav-right {
+    float: right;
+}
+
+.nav-active {
+    background: #222;
+    color: white;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
     body {

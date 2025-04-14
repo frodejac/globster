@@ -7,7 +7,13 @@
 </head>
 <body>
 <div class="container">
-    <h1>Admin Dashboard</h1>
+    <nav>
+        <ul>
+            <li><a class="nav-active" href="/admin/home/">Home</a></li>
+            <li><a href="/admin/files/">Files</a></li>
+            <li class="nav-right"><a href="/logout/">Logout</a></li>
+        </ul>
+    </nav>
     <div>
         <h2>Create New Upload Link</h2>
         <form action="/admin/links/new/" method="POST">
@@ -81,10 +87,6 @@
             {{ end }}
             </tbody>
         </table>
-    </div>
-    <div>
-        <h2>Logout</h2>
-        <a href="/logout/" class="button">Logout</a>
     </div>
 </div>
 </body>

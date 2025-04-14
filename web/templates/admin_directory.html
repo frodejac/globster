@@ -6,8 +6,15 @@
 </head>
 <body>
 <div class="container">
+    <nav>
+        <ul>
+            <li><a href="/admin/home/">Home</a></li>
+            <li><a href="/admin/files/">Files</a></li>
+            <li class="nav-right"><a href="/logout/">Logout</a></li>
+        </ul>
+    </nav>
     {{ $dirName := .Directory.Name }}
-    <h1>Directory {{ $dirName }}</h1>
+    <h2>Directory {{ $dirName }}</h2>
     <div>
         <table>
             <thead>
