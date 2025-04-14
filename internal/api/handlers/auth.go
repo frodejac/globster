@@ -83,5 +83,6 @@ func (h *AuthHandler) HandleLogout(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
+	w.Header().Add("Clear-Site-Data", "cookies")
 	http.Redirect(w, r, "/", http.StatusFound)
 }

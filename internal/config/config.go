@@ -26,7 +26,9 @@ type AuthConfig struct {
 }
 
 type ServerConfig struct {
-	Port string
+	Port               string
+	UseHsts            bool
+	UseSecurityHeaders bool
 }
 
 type DatabaseConfig struct {
@@ -117,10 +119,6 @@ func LoadConfig() (*Config, error) {
 	if host == "" {
 		host = "localhost"
 	}
-	httpsEnabled := os.Getenv("HTTPS_ENABLED")
-	if httpsEnabled == "" {
-		httpsEnabled = "false"
-	}
 
 	maxFileSizeStr := os.Getenv("MAX_FILE_SIZE_BYTES")
 	if maxFileSizeStr == "" {
@@ -143,6 +141,22 @@ func LoadConfig() (*Config, error) {
 	serverPort := os.Getenv("SERVER_PORT")
 	if serverPort == "" {
 		serverPort = "8080"
+	}
+	serverUseHstsStr := os.Getenv("USE_HSTS")
+	if serverUseHstsStr == "" {
+		serverUseHstsStr = "false"
+	}
+	serverUseHsts, err := strconv.ParseBool(serverUseHstsStr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse USE_HSTS: %v", err)
+	}
+	serverUseSecurityHeadersStr := os.Getenv("USE_SECURITY_HEADERS")
+	if serverUseSecurityHeadersStr == "" {
+		serverUseSecurityHeadersStr = "false"
+	}
+	serverUseSecurityHeaders, err := strconv.ParseBool(serverUseSecurityHeadersStr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse USE_SECURITY_HEADERS: %v", err)
 	}
 	sessionLifetimeStr := os.Getenv("SESSION_LIFETIME")
 	if sessionLifetimeStr == "" {
@@ -180,7 +194,9 @@ func LoadConfig() (*Config, error) {
 		}
 	}
 	server := &ServerConfig{
-		Port: serverPort,
+		Port:               serverPort,
+		UseHsts:            serverUseHsts,
+		UseSecurityHeaders: serverUseSecurityHeaders,
 	}
 	database := &DatabaseConfig{
 		Path: databasePath,

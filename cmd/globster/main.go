@@ -106,8 +106,12 @@ func main() {
 	mux := http.NewServeMux()
 	router.SetupRoutes(mux)
 
+	// Add middleware
+	handler := api.SecurityHeadersMiddleware(cfg.Server.UseHsts)(mux)
+	handler = api.LoggingMiddleWare(handler)
+
 	log.Printf("Starting server on port %s", cfg.Server.Port)
-	err = http.ListenAndServe(":"+cfg.Server.Port, api.LoggingMiddleWare(mux))
+	err = http.ListenAndServe(":"+cfg.Server.Port, handler)
 	if err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 	}
