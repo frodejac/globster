@@ -27,6 +27,7 @@ type Directory struct {
 
 type File struct {
 	Name         string
+	DisplayName  string
 	Size         int64
 	LastModified time.Time
 	//DownloadLink string

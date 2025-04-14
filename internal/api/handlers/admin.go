@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -128,7 +129,6 @@ func (h *AdminHandler) HandleListDirectories(w http.ResponseWriter, r *http.Requ
 }
 
 func (h *AdminHandler) HandleListDirectory(w http.ResponseWriter, r *http.Request) {
-	slog.Info("List directory")
 	dirName := r.PathValue("directory")
 	if dirName == "" {
 		http.Error(w, "Missing directory", http.StatusBadRequest)
@@ -149,7 +149,6 @@ func (h *AdminHandler) HandleListDirectory(w http.ResponseWriter, r *http.Reques
 }
 
 func (h *AdminHandler) HandleDownloadFile(w http.ResponseWriter, r *http.Request) {
-	slog.Info("Download file")
 	dirName := r.PathValue("directory")
 	fileName := r.PathValue("filename")
 	if dirName == "" || fileName == "" {
@@ -170,6 +169,18 @@ func (h *AdminHandler) HandleDownloadFile(w http.ResponseWriter, r *http.Request
 		return
 	}
 	defer file.Close()
-	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", fileInfo.Name()))
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", h.uploads.DisplayName(fileInfo.Name())))
 	http.ServeContent(w, r, filePath, fileInfo.ModTime(), file)
+}
+
+func (h *AdminHandler) HandlePostUpload(w http.ResponseWriter, r *http.Request) {
+	directory := r.PathValue("directory")
+	if err := h.uploads.AdminUpload(r, directory); err != nil {
+		slog.Error("Upload error", "error", err)
+		http.Redirect(w, r, "/upload/error/", http.StatusFound)
+		return
+	}
+	// Remove the /upload suffix from the URL
+	redirectUrl := strings.TrimSuffix(r.URL.Path, "upload/")
+	http.Redirect(w, r, redirectUrl, http.StatusFound)
 }

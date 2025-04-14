@@ -74,6 +74,7 @@ func (r *Router) SetupRoutes(mux *http.ServeMux) {
 	adminRoutes.HandleFunc("GET /admin/files/", r.handlers.admin.HandleListDirectories)
 	adminRoutes.HandleFunc("GET /admin/files/{directory}/{filename}", r.handlers.admin.HandleDownloadFile)
 	adminRoutes.HandleFunc("GET /admin/files/{directory}/", r.handlers.admin.HandleListDirectory)
+	adminRoutes.HandleFunc("POST /admin/files/{directory}/upload/", r.handlers.admin.HandlePostUpload)
 	adminRoutes.HandleFunc("GET /admin/home/", r.handlers.admin.HandleHome)
 	adminRoutes.HandleFunc("POST /admin/links/new/", r.handlers.admin.HandleCreateLink)
 	adminRoutes.HandleFunc("POST /admin/links/deactivate/", r.handlers.admin.HandleDeactivateLink)

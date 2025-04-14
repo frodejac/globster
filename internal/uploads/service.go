@@ -5,6 +5,7 @@ import (
 	"github.com/frodejac/globster/internal/database/links"
 	"github.com/frodejac/globster/internal/random"
 	"io"
+	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -38,6 +39,22 @@ func (u *UploadService) CreateLink(directory string, expiresAt time.Time, remain
 	}
 	// Create a new upload token
 	token := random.String(32)
+
+	// Sanitize directory
+	directory = filepath.Clean(directory)
+	directory = filepath.Base(directory)
+	directory = regexp.MustCompile("[^a-zA-Z0-9\\-_]+").ReplaceAllString(directory, "")
+
+	if directory == "" {
+		return fmt.Errorf("invalid directory name")
+	}
+
+	// Create the directory if it doesn't exist
+	dirPath := filepath.Join(u.config.BaseDir, directory)
+	if err := os.MkdirAll(dirPath, 0755); err != nil {
+		return fmt.Errorf("failed to create directory: %v", err)
+	}
+
 	// Insert the upload link into the database
 	if err := u.store.Create(token, directory, expiresAt, remainingUses); err != nil {
 		return fmt.Errorf("failed to create upload link: %v", err)
@@ -162,6 +179,86 @@ func (u *UploadService) Upload(r *http.Request, link *links.Link) error {
 	return nil
 }
 
+// AdminUpload handles file uploads for admin users. It allows uploading files to a specified
+// directory on the server. It checks for the existence of the directory, validates the file size,
+// checks the file extension and MIME type, and saves the file with a sanitized name.
+// It also ensures that the file does not already exist in the directory.
+// If the upload is successful, it returns nil. Otherwise, it returns an error.
+// The directory parameter specifies the target directory for the upload.
+// The directory must exist on the server and be writable by the application.
+func (u *UploadService) AdminUpload(r *http.Request, directory string) error {
+	if directory == "" {
+		return fmt.Errorf("directory cannot be empty")
+	}
+	// Check if directory exists
+	dirPath := filepath.Join(u.config.BaseDir, directory)
+	if _, err := os.Stat(dirPath); err != nil {
+		return fmt.Errorf("directory does not exist")
+	}
+
+	if err := r.ParseMultipartForm(u.config.MaxFileSize); err != nil {
+		return fmt.Errorf("failed to parse form: %v", err)
+	}
+
+	// Get the file from the form
+	file, handler, err := r.FormFile("file")
+	if err != nil {
+		return fmt.Errorf("failed to get file from form: %v", err)
+	}
+	defer file.Close()
+
+	if handler.Size <= 0 {
+		return fmt.Errorf("file size is zero")
+	}
+
+	// Check extension
+	if !u.checkFileExtension(handler.Filename) {
+		return fmt.Errorf("file extension not allowed")
+	}
+
+	// Check reported MIME type
+	if mime := handler.Header["Content-Type"]; !u.checkMimeType(mime) {
+		return fmt.Errorf("MIME type not allowed")
+	}
+
+	// Check actual MIME type
+	buffer := make([]byte, 512)
+	n, err := file.Read(buffer)
+	if err != nil && err != io.EOF {
+		return fmt.Errorf("failed to read file: %v", err)
+	}
+	if n > 0 {
+		if mimeType := http.DetectContentType(buffer[:n]); !u.checkMimeType([]string{mimeType}) {
+			return fmt.Errorf("MIME type not allowed")
+		}
+	}
+
+	// Sanitize the filename
+	filename := sanitizeFilename(handler.Filename, random.String(32))
+
+	// Don't overwrite existing files (highly unlikely, but still)
+	if _, err := os.Stat(filepath.Join(dirPath, filename)); err == nil {
+		return fmt.Errorf("file already exists")
+	}
+
+	outfile, err := os.Create(filepath.Join(dirPath, filename))
+	if err != nil {
+		return fmt.Errorf("failed to create file: %v", err)
+	}
+	defer outfile.Close()
+
+	// Rewind the file reader to the beginning
+	if _, err := file.Seek(0, io.SeekStart); err != nil {
+		return fmt.Errorf("failed to seek file: %v", err)
+	}
+
+	if _, err := io.Copy(outfile, file); err != nil {
+		return fmt.Errorf("failed to save file: %v", err)
+	}
+
+	return nil
+}
+
 func (u *UploadService) ListDirectories() ([]Directory, error) {
 	// List all directories on disk
 	entries, err := os.ReadDir(u.config.BaseDir)
@@ -182,16 +279,23 @@ func (u *UploadService) ListDirectories() ([]Directory, error) {
 				return nil, fmt.Errorf("failed to read directory %s: %v", dirPath, err)
 			}
 			fileCount := 0
+			totalSize := int64(0)
 			for _, file := range files {
 				if !file.IsDir() {
 					fileCount++
+					fileInfo, err := file.Info()
+					if err != nil {
+						slog.Warn("Failed to get file info", "error", err)
+						continue
+					}
+					totalSize += fileInfo.Size()
 				}
 			}
 
 			dirInfo = append(dirInfo, Directory{
 				Name:         entry.Name(),
 				FileCount:    fileCount,
-				Size:         info.Size(),
+				Size:         totalSize,
 				LastModified: info.ModTime(),
 			})
 		}
@@ -229,6 +333,7 @@ func (u *UploadService) ListFiles(directory string) (*Directory, error) {
 			}
 			fileList = append(fileList, File{
 				Name:         fileInfo.Name(),
+				DisplayName:  u.DisplayName(fileInfo.Name()),
 				Size:         fileInfo.Size(),
 				LastModified: fileInfo.ModTime(),
 			})
@@ -274,39 +379,6 @@ func (u *UploadService) GetFilePath(directory, filename string) (string, os.File
 	return filePath, fileInfo, nil
 }
 
-func (u *UploadService) Download(w http.ResponseWriter, r *http.Request, directory, filename string) error {
-	// Validate the directory and filename
-	if directory == "" || filename == "" {
-		return fmt.Errorf("directory and filename are required")
-	}
-	filePath := filepath.Join(u.config.BaseDir, directory, filename)
-
-	// Check if the file exists
-	fileInfo, err := os.Stat(filePath)
-	if os.IsNotExist(err) {
-		return fmt.Errorf("file does not exist")
-	}
-	if err != nil {
-		return fmt.Errorf("failed to stat file %s: %v", filePath, err)
-	}
-	if fileInfo.IsDir() {
-		return fmt.Errorf("path is a directory, not a file")
-	}
-	// Check file size
-	if fileInfo.Size() > u.config.MaxFileSize {
-		return fmt.Errorf("file size exceeds the maximum allowed size")
-	}
-	// Open the file for reading
-	file, err := os.Open(filePath)
-	if err != nil {
-		return fmt.Errorf("failed to open file %s: %v", filePath, err)
-	}
-	defer file.Close()
-
-	http.ServeContent(w, r, filename, fileInfo.ModTime(), file)
-	return nil
-}
-
 func (u *UploadService) checkFileExtension(filename string) bool {
 	ext := filepath.Ext(filename)
 	for _, allowedExt := range u.config.AllowedExtensions {
@@ -343,4 +415,8 @@ func sanitizeFilename(filename, token string) string {
 		filename = filename[:255-len(ext)] + ext
 	}
 	return filename
+}
+
+func (u *UploadService) DisplayName(filename string) string {
+	return strings.SplitN(filename, "-", 3)[2]
 }
