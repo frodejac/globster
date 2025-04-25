@@ -257,10 +257,10 @@ func (h *AdminHandler) HandlePostUpload(w http.ResponseWriter, r *http.Request) 
 	directory := r.PathValue("directory")
 	if err := h.uploads.AdminUpload(r, directory); err != nil {
 		slog.Error("Upload error", "error", err)
-		http.Redirect(w, r, "/upload/error/", http.StatusFound)
+		http.Redirect(w, r, "/upload/error", http.StatusFound)
 		return
 	}
 	// Remove the /upload suffix from the URL
-	redirectUrl := strings.TrimSuffix(r.URL.Path, "upload/")
+	redirectUrl := strings.TrimSuffix(r.URL.Path, "upload")
 	http.Redirect(w, r, redirectUrl, http.StatusFound)
 }

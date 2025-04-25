@@ -11,13 +11,13 @@
         <ul>
             <li><a href="/admin/home/">Home</a></li>
             <li><a href="/admin/files/">Files</a></li>
-            <li class="nav-right"><a href="/logout/">Logout</a></li>
+            <li class="nav-right"><a href="/logout">Logout</a></li>
         </ul>
     </nav>
     {{ $dirName := .Directory.Name }}
     <h2>./{{ $dirName }}</h2>
     <div>
-        <form action="/admin/files/{{ $dirName }}/upload/" method="POST" enctype="multipart/form-data">
+        <form action="/admin/files/{{ $dirName }}/upload" method="POST" enctype="multipart/form-data">
             <div>
                 <label for="file">Select files to upload:</label>
                 <input type="file" id="file" name="file" multiple>
@@ -49,7 +49,7 @@
     </div>
     <div>
         <h4>Share Directory</h4>
-        <form action="/admin/files/{{ $dirName }}/share/" method="POST">
+        <form action="/admin/files/{{ $dirName }}/share" method="POST">
             <div>
                 <label for="uses">Number of Uses:</label>
                 <input type="number" id="uses" name="uses" min="1" value="10" required>
@@ -99,7 +99,7 @@
                     </div>
                 </td>
                 <td>
-                    <form action="/admin/files/{{ $dirName }}/unshare/" method="POST">
+                    <form action="/admin/files/{{ $dirName }}/unshare" method="POST">
                         <input type="hidden" name="token" value="{{ .Token }}">
                         <button type="submit" class="icon-button delete" title="Deactivate link">
                             <svg viewBox="0 0 24 24">

@@ -58,7 +58,7 @@ func (ls *Store) ListUploadLinks(active bool) ([]UploadLink, error) {
 		if active && (link.RemainingUses <= 0 || link.ExpiresAt.Before(time.Now())) {
 			continue
 		}
-		link.Url = fmt.Sprintf("/upload/%s/", link.Token)
+		link.Url = fmt.Sprintf("/upload/%s", link.Token)
 		links = append(links, link)
 	}
 	if err := rows.Err(); err != nil {
@@ -109,7 +109,7 @@ func (ls *Store) GetUploadLink(token string) (*UploadLink, error) {
 		}
 		return nil, fmt.Errorf("failed to fetch upload link: %v", err)
 	}
-	link.Url = fmt.Sprintf("/upload/%s/", link.Token)
+	link.Url = fmt.Sprintf("/upload/%s", link.Token)
 	return &link, nil
 }
 

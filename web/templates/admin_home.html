@@ -11,12 +11,12 @@
         <ul>
             <li><a class="nav-active" href="/admin/home/">Home</a></li>
             <li><a href="/admin/files/">Files</a></li>
-            <li class="nav-right"><a href="/logout/">Logout</a></li>
+            <li class="nav-right"><a href="/logout">Logout</a></li>
         </ul>
     </nav>
     <div>
         <h2>Create New Upload Link</h2>
-        <form action="/admin/links/new/" method="POST">
+        <form action="/admin/links/new" method="POST">
             <div>
                 <label for="directory">Destination Directory:</label>
                 <input type="text" id="directory" name="directory" required>
@@ -74,7 +74,7 @@
                     </div>
                 </td>
                 <td>
-                    <form action="/admin/links/deactivate/" method="POST">
+                    <form action="/admin/links/deactivate" method="POST">
                         <input type="hidden" name="token" value="{{ .Token }}">
                         <button type="submit" class="icon-button delete" title="Deactivate link">
                             <svg viewBox="0 0 24 24">

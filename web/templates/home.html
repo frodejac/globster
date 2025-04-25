@@ -9,9 +9,9 @@
     <h1>Welcome</h1>
     <p>Please login to continue</p>
     {{ if .GoogleAuth }}
-    <a href="/login/" class="button">Login with Google</a>
+    <a href="/login" class="button">Login with Google</a>
     {{ else if .StaticAuth }}
-    <form action="/login/" method="POST">
+    <form action="/login" method="POST">
         <div>
             <label for="username">Username:</label>
             <input type="text" id="username" name="username" required>

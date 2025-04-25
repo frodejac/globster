@@ -49,10 +49,10 @@ func (h *UploadHandler) HandlePostUpload(w http.ResponseWriter, r *http.Request)
 	}
 	if err := h.uploads.Upload(r, link); err != nil {
 		slog.Error("Upload error", "error", err)
-		http.Redirect(w, r, "/upload/error/", http.StatusFound)
+		http.Redirect(w, r, "/upload/error", http.StatusFound)
 		return
 	}
-	http.Redirect(w, r, "/upload/success/", http.StatusFound)
+	http.Redirect(w, r, "/upload/success", http.StatusFound)
 }
 
 func (h *UploadHandler) HandleSuccess(w http.ResponseWriter, r *http.Request) {
