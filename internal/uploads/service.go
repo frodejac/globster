@@ -5,7 +5,6 @@ import (
 	"github.com/frodejac/globster/internal/database/links"
 	"github.com/frodejac/globster/internal/random"
 	"io"
-	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -56,7 +55,7 @@ func (u *UploadService) CreateLink(directory string, expiresAt time.Time, remain
 	}
 
 	// Insert the upload link into the database
-	if err := u.store.Create(token, directory, expiresAt, remainingUses); err != nil {
+	if err := u.store.CreateUploadLink(token, directory, expiresAt, remainingUses); err != nil {
 		return fmt.Errorf("failed to create upload link: %v", err)
 	}
 	return nil
@@ -68,7 +67,7 @@ func (u *UploadService) DeactivateLink(token string) error {
 		return fmt.Errorf("token is required")
 	}
 	// Deactivate the upload link
-	if err := u.store.Deactivate(token); err != nil {
+	if err := u.store.DeactivateUploadLink(token); err != nil {
 		return fmt.Errorf("failed to deactivate upload link: %v", err)
 	}
 	return nil
@@ -80,19 +79,19 @@ func (u *UploadService) DeleteLink(token string) error {
 		return fmt.Errorf("token is required")
 	}
 	// Delete the upload link
-	if err := u.store.Delete(token); err != nil {
+	if err := u.store.DeleteUploadLink(token); err != nil {
 		return fmt.Errorf("failed to delete upload link: %v", err)
 	}
 	return nil
 }
 
-func (u *UploadService) ValidateToken(token string) (*links.Link, error) {
+func (u *UploadService) ValidateToken(token string) (*links.UploadLink, error) {
 	// Validate the token
 	if token == "" {
 		return nil, fmt.Errorf("no token provided")
 	}
 	// Check if the token exists and is not expired
-	link, err := u.store.Get(token)
+	link, err := u.store.GetUploadLink(token)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get upload link: %v", err)
 	}
@@ -105,7 +104,7 @@ func (u *UploadService) ValidateToken(token string) (*links.Link, error) {
 	return link, nil
 }
 
-func (u *UploadService) Upload(r *http.Request, link *links.Link) error {
+func (u *UploadService) Upload(r *http.Request, link *links.UploadLink) error {
 	if err := r.ParseMultipartForm(u.config.MaxFileSize); err != nil {
 		return fmt.Errorf("failed to parse form: %v", err)
 	}
@@ -172,7 +171,7 @@ func (u *UploadService) Upload(r *http.Request, link *links.Link) error {
 	}
 
 	// Update the remaining uses and last used time in the database
-	if err := u.store.Update(link.Token, link.RemainingUses-1, time.Now()); err != nil {
+	if err := u.store.UpdateUploadLink(link.Token, link.RemainingUses-1, time.Now()); err != nil {
 		return fmt.Errorf("failed to update remaining uses: %v", err)
 	}
 
@@ -259,126 +258,6 @@ func (u *UploadService) AdminUpload(r *http.Request, directory string) error {
 	return nil
 }
 
-func (u *UploadService) ListDirectories() ([]Directory, error) {
-	// List all directories on disk
-	entries, err := os.ReadDir(u.config.BaseDir)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read base directory: %v", err)
-	}
-
-	dirInfo := make([]Directory, 0, len(entries))
-	for _, entry := range entries {
-		if entry.IsDir() {
-			info, err := os.Stat(filepath.Join(u.config.BaseDir, entry.Name()))
-			if err != nil {
-				return nil, fmt.Errorf("failed to stat directory %s: %v", entry.Name(), err)
-			}
-			dirPath := filepath.Join(u.config.BaseDir, entry.Name())
-			files, err := os.ReadDir(dirPath)
-			if err != nil {
-				return nil, fmt.Errorf("failed to read directory %s: %v", dirPath, err)
-			}
-			fileCount := 0
-			totalSize := int64(0)
-			for _, file := range files {
-				if !file.IsDir() {
-					fileCount++
-					fileInfo, err := file.Info()
-					if err != nil {
-						slog.Warn("Failed to get file info", "error", err)
-						continue
-					}
-					totalSize += fileInfo.Size()
-				}
-			}
-
-			dirInfo = append(dirInfo, Directory{
-				Name:         entry.Name(),
-				FileCount:    fileCount,
-				Size:         totalSize,
-				LastModified: info.ModTime(),
-			})
-		}
-
-	}
-
-	return dirInfo, nil
-}
-
-func (u *UploadService) ListFiles(directory string) (*Directory, error) {
-	// Validate the directory
-	if directory == "" {
-		return nil, fmt.Errorf("directory is required")
-	}
-	dirPath := filepath.Join(u.config.BaseDir, directory)
-
-	// Get directory info
-	info, err := os.Stat(dirPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to stat directory %s: %v", dirPath, err)
-	}
-
-	// List all files in the specified directory
-	files, err := os.ReadDir(dirPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read directory %s: %v", dirPath, err)
-	}
-
-	fileList := make([]File, 0, len(files))
-	for _, file := range files {
-		if !file.IsDir() {
-			fileInfo, err := file.Info()
-			if err != nil {
-				return nil, fmt.Errorf("failed to get file info %s: %v", file.Name(), err)
-			}
-			fileList = append(fileList, File{
-				Name:         fileInfo.Name(),
-				DisplayName:  u.DisplayName(fileInfo.Name()),
-				Size:         fileInfo.Size(),
-				LastModified: fileInfo.ModTime(),
-			})
-		}
-	}
-
-	// Create a Directory struct to return
-	dirInfo := &Directory{
-		Name:         directory,
-		FileCount:    len(fileList),
-		Files:        fileList,
-		Size:         info.Size(),
-		LastModified: info.ModTime(),
-	}
-
-	return dirInfo, nil
-}
-
-func (u *UploadService) GetFilePath(directory, filename string) (string, os.FileInfo, error) {
-	// Validate the directory and filename
-	if directory == "" || filename == "" {
-		return "", nil, fmt.Errorf("directory and filename are required")
-	}
-	filePath := filepath.Join(u.config.BaseDir, directory, filename)
-	filePath = filepath.Clean(filePath)
-
-	// Validate the file
-	fileInfo, err := os.Stat(filePath)
-	if os.IsNotExist(err) {
-		return "", nil, fmt.Errorf("file does not exist")
-	}
-	if err != nil {
-		return "", nil, fmt.Errorf("failed to stat file %s: %v", filePath, err)
-	}
-	if fileInfo.IsDir() {
-		return "", nil, fmt.Errorf("path is a directory, not a file")
-	}
-	// Check file size
-	if fileInfo.Size() > u.config.MaxFileSize {
-		return "", nil, fmt.Errorf("file size exceeds the maximum allowed size")
-	}
-
-	return filePath, fileInfo, nil
-}
-
 func (u *UploadService) checkFileExtension(filename string) bool {
 	ext := filepath.Ext(filename)
 	for _, allowedExt := range u.config.AllowedExtensions {
@@ -415,8 +294,4 @@ func sanitizeFilename(filename, token string) string {
 		filename = filename[:255-len(ext)] + ext
 	}
 	return filename
-}
-
-func (u *UploadService) DisplayName(filename string) string {
-	return strings.SplitN(filename, "-", 3)[2]
 }

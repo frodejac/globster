@@ -9,6 +9,8 @@ import (
 	"github.com/frodejac/globster/internal/database"
 	"github.com/frodejac/globster/internal/database/links"
 	"github.com/frodejac/globster/internal/database/sessions"
+	"github.com/frodejac/globster/internal/downloads"
+	"github.com/frodejac/globster/internal/files"
 	"github.com/frodejac/globster/internal/uploads"
 	"html/template"
 	"log/slog"
@@ -97,6 +99,18 @@ func main() {
 		os.Exit(1)
 	}
 
+	downloadService := downloads.NewDownloadService(
+		linkStore,
+		&downloads.Config{
+			BaseDir: cfg.Upload.Path,
+		},
+	)
+
+	fileService := files.NewFileService(&files.Config{
+		BaseDir:     cfg.Upload.Path,
+		MaxFileSize: cfg.Upload.MaxFileSize,
+	})
+
 	templates, err := template.ParseGlob(filepath.Join(cfg.TemplatePath, "*.html"))
 	if err != nil {
 		slog.Error("Failed to parse templates", "error", err)
@@ -118,6 +132,8 @@ func main() {
 		staticAuth,
 		googleAuth,
 		uploadService,
+		downloadService,
+		fileService,
 		apiCfg,
 	)
 

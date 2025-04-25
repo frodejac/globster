@@ -1,19 +1,13 @@
-package uploads
+package files
 
-import (
-	"github.com/frodejac/globster/internal/database/links"
-	"time"
-)
+import "time"
 
 type Config struct {
-	MaxFileSize       int64
-	BaseDir           string
-	AllowedExtensions []string
-	AllowedMimeTypes  []string
+	BaseDir     string
+	MaxFileSize int64
 }
 
-type UploadService struct {
-	store  *links.Store
+type FileService struct {
 	config *Config
 }
 
